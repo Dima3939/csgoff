@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  balance   Float    @default(0.0)
+  role      String   @default("user") // 'user' or 'admin'
+  steamId   String?  @unique
+  tradeUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventories Inventory[]
+  drops       DropHistory[]
+}
+
+model Item {
+  id          Int      @id @default(autoincrement())
+  name        String
+  image       String
+  price       Float
+  rarity      String   // 'blue', 'purple', 'pink', 'red', 'gold'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cases       CaseItem[]
+  inventories Inventory[]
+  drops       DropHistory[]
+}
+
+model Case {
+  id          Int      @id @default(autoincrement())
+  name        String
+  image       String
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       CaseItem[]
+  drops       DropHistory[]
+}
+
+// Join table for Case and Item with drop chance
+model CaseItem {
+  id          Int      @id @default(autoincrement())
+  caseId      Int
+  itemId      Int
+  chance      Float    // Probability (e.g., 0.1 for 10%)
+
+  case        Case     @relation(fields: [caseId], references: [id])
+  item        Item     @relation(fields: [itemId], references: [id])
+
+  @@unique([caseId, itemId])
+}
+
+model Inventory {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  itemId      Int
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  item        Item     @relation(fields: [itemId], references: [id])
+}
+
+model DropHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     // Nullable for fake bot drops
+  botName     String?  // If it's a fake drop
+  caseId      Int
+  itemId      Int
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+  case        Case     @relation(fields: [caseId], references: [id])
+  item        Item     @relation(fields: [itemId], references: [id])
+}
